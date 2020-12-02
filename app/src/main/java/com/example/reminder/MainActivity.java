@@ -17,17 +17,14 @@ import android.app.NotificationChannel;
 import android.app.NotificationManager;
 import android.app.TimePickerDialog;
 import android.content.Context;
-import android.content.DialogInterface;
 import android.content.pm.PackageManager;
 import android.media.MediaPlayer;
 import android.media.MediaRecorder;
 import android.os.Build;
 import android.os.Bundle;
 import android.os.Environment;
-import android.provider.Settings;
-import android.util.Log;
-import android.view.View;
 import android.widget.Button;
+import android.widget.ImageButton;
 import android.widget.ImageView;
 import android.widget.TimePicker;
 
@@ -38,77 +35,50 @@ import java.util.concurrent.TimeUnit;
 public class MainActivity extends AppCompatActivity implements TimePickerDialog.OnTimeSetListener {
     private final int RECORD_CODE = 123;
 
-    private ImageView recordAudio, stopRecording, timePicker;
-    private Button setReminder;
     private OneTimeWorkRequest request;
     private MediaRecorder mediaRecorder;
     private static final String fileName = "recoded.zip";
-    private static String file
+    private static final String file
             = Environment.getExternalStorageDirectory().getAbsolutePath() + File.separator + fileName;
-
-    private static final String TAG = "MainActivity";
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
 
-        recordAudio = findViewById(R.id.record);
-        stopRecording = findViewById(R.id.stop_recording);
-        timePicker = findViewById(R.id.open_time_picker);
-        setReminder = findViewById(R.id.set_reminder);
+        ImageButton recordAudio = findViewById(R.id.record);
+        ImageButton stopRecording = findViewById(R.id.stop_recording);
+        ImageView timePicker = findViewById(R.id.open_time_picker);
+        Button setReminder = findViewById(R.id.set_reminder);
 
         requestPermissions();
 
-        stopRecording.setOnClickListener(new View.OnClickListener() {
-            @Override
-            public void onClick(View v) {
-                requestPermissions();
-                Log.i(TAG, "onClick: EKR st 1 ");
-                stopRecording();
-                Log.i(TAG, "onClick: EKR st 2");
-            }
+        stopRecording.setOnClickListener(v -> {
+            requestPermissions();
+            stopRecording();
         });
         stopRecording.setClickable(false);
 
-        recordAudio.setOnClickListener(new View.OnClickListener() {
-            @Override
-            public void onClick(View v) {
-                stopRecording.setClickable(true);
-                Log.i(TAG, "onClick: EKR re 1");
-                requestPermissions();
-                Log.i(TAG, "onClick: EKR re 2");
+        recordAudio.setOnClickListener(v -> {
+            stopRecording.setClickable(true);
+            requestPermissions();
 
-                mediaRecorder = new MediaRecorder();
-                Log.i(TAG, "onClick: EKR re 3");
-                mediaRecorder.setAudioSource(MediaRecorder.AudioSource.MIC);
-                Log.i(TAG, "onClick: EKR re 4");
-                mediaRecorder.setOutputFormat(MediaRecorder.OutputFormat.THREE_GPP);
-                Log.i(TAG, "onClick: EKR re 5");
-                mediaRecorder.setAudioEncoder(MediaRecorder.OutputFormat.AMR_NB);
-                Log.i(TAG, "onClick: EKR re 6");
+            mediaRecorder = new MediaRecorder();
+            mediaRecorder.setAudioSource(MediaRecorder.AudioSource.MIC);
+            mediaRecorder.setOutputFormat(MediaRecorder.OutputFormat.THREE_GPP);
+            mediaRecorder.setAudioEncoder(MediaRecorder.OutputFormat.AMR_NB);
 
-                mediaRecorder.setOutputFile(file);
-                Log.i(TAG, "onClick: EKR re 7");
+            mediaRecorder.setOutputFile(file);
 
-                record();
-            }
+            record();
         });
 
-        timePicker.setOnClickListener(new View.OnClickListener() {
-            @Override
-            public void onClick(View v) {
-                DialogFragment timePicker = new TimePickerFragment();
-                timePicker.show(getSupportFragmentManager(), "time picker");
-            }
+        timePicker.setOnClickListener(v -> {
+            DialogFragment timePicker1 = new TimePickerFragment();
+            timePicker1.show(getSupportFragmentManager(), "time picker");
         });
 
-        setReminder.setOnClickListener(new View.OnClickListener() {
-            @Override
-            public void onClick(View v) {
-                WorkManager.getInstance().enqueue(request);
-            }
-        });
+        setReminder.setOnClickListener(v -> WorkManager.getInstance().enqueue(request));
 
     }
 
@@ -126,7 +96,7 @@ public class MainActivity extends AppCompatActivity implements TimePickerDialog.
 
         request = new OneTimeWorkRequest.Builder(MyWorker.class)
                 .setInitialDelay(deferredHour, TimeUnit.HOURS)
-                .setInitialDelay(deferredMin, TimeUnit.SECONDS)
+                .setInitialDelay(deferredMin, TimeUnit.MINUTES)
                 .build();
     }
 
@@ -141,9 +111,7 @@ public class MainActivity extends AppCompatActivity implements TimePickerDialog.
 
     private void stopRecording() {
         mediaRecorder.stop();
-        Log.i(TAG, "onClick: EKR stH 1");
         mediaRecorder.release();
-        Log.i(TAG, "onClick: EKR stH 2");
     }
 
     private String getDeferredTime(int pickedHour, int pickedMin, int currentHour, int currentMin) {
@@ -178,21 +146,11 @@ public class MainActivity extends AppCompatActivity implements TimePickerDialog.
             new AlertDialog.Builder(MainActivity.this)
                     .setTitle("Permission needed")
                     .setMessage("This permission is needed")
-                    .setPositiveButton("ok", new DialogInterface.OnClickListener() {
-                        @Override
-                        public void onClick(DialogInterface dialog, int which) {
-                            ActivityCompat.requestPermissions(MainActivity.this,
-                                    new String[]{Manifest.permission.RECORD_AUDIO
-                                            , Manifest.permission.WRITE_EXTERNAL_STORAGE
-                                            , Manifest.permission.READ_EXTERNAL_STORAGE}, RECORD_CODE);
-                        }
-                    })
-                    .setNegativeButton("cancel", new DialogInterface.OnClickListener() {
-                        @Override
-                        public void onClick(DialogInterface dialog, int which) {
-                            dialog.dismiss();
-                        }
-                    })
+                    .setPositiveButton("ok", (dialog, which) -> ActivityCompat.requestPermissions(MainActivity.this,
+                            new String[]{Manifest.permission.RECORD_AUDIO
+                                    , Manifest.permission.WRITE_EXTERNAL_STORAGE
+                                    , Manifest.permission.READ_EXTERNAL_STORAGE}, RECORD_CODE))
+                    .setNegativeButton("cancel", (dialog, which) -> dialog.dismiss())
                     .create().show();
         } else {
             ActivityCompat.requestPermissions(MainActivity.this,
@@ -203,11 +161,9 @@ public class MainActivity extends AppCompatActivity implements TimePickerDialog.
     }
 
     public static class MyWorker extends Worker {
-        private final Context mContext;
 
         public MyWorker(@NonNull Context context, @NonNull WorkerParameters workerParams) {
             super(context, workerParams);
-            this.mContext = context;
         }
 
         @NonNull
@@ -219,7 +175,6 @@ public class MainActivity extends AppCompatActivity implements TimePickerDialog.
         }
 
         private void displayNotification() {
-
             NotificationManager manager =
                     (NotificationManager) getApplicationContext().getSystemService(Context.NOTIFICATION_SERVICE);
 
@@ -230,7 +185,7 @@ public class MainActivity extends AppCompatActivity implements TimePickerDialog.
 
             NotificationCompat.Builder builder = new NotificationCompat.Builder(getApplicationContext(), "note")
                     .setContentTitle("Reminder")
-                    .setSmallIcon(R.mipmap.ic_launcher);
+                    .setSmallIcon(R.drawable.ic_record_voice);
 
             manager.notify(1, builder.build());
 
